@@ -10,7 +10,6 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
 
-
 def extract_spreadsheet_id(url: str) -> str:
     """
     Google SpreadsheetのURLからSpreadsheet IDを抽出する
@@ -43,7 +42,7 @@ def extract_spreadsheet_id(url: str) -> str:
 
 def add_new_url(
     spreadsheet_id: str,
-    worksheet_name: str,
+    sheet_name: str,
     date: str,
     youtube_url: str,
     credential_file:str |Path
@@ -55,7 +54,7 @@ def add_new_url(
     ----------
     spreadsheet_id : str
         スプレッドシートID
-    worksheet_name : str
+    sheet_name : str
         シート名
     date : str
         yyyy-mm-dd形式の日付
@@ -76,7 +75,7 @@ def add_new_url(
     gc = gspread.service_account(
         filename=str(credential_file)
     )
-    sheet = gc.open_by_key(spreadsheet_id).worksheet(worksheet_name)
+    sheet = gc.open_by_key(spreadsheet_id).worksheet(sheet_name)
 
     # 全データ取得
     records = sheet.get_all_records()
@@ -263,8 +262,10 @@ def compare_sheets(
 
 if __name__=="__main__":
     spread_sheet_url="https://docs.google.com/spreadsheets/d/1DtDIK2QJGgKmUqMdGREqSv-7EJXrx16vWWCDzyyPhJs/edit?gid=0#gid=0"
-    update_google_sheet(spreadsheet_id=extract_spreadsheet_id(spread_sheet_url),
-                        sheet_name="SunSpotCalender",
-                        cell="C1",
-                        value="testcell",
-                        credential_file=r"secrets\sunspotcalender-832ea382b537.json")
+    video_url="https://youtube.com/shorts/_STlcRIGm6s?feature=share"
+    date="2026-09-19"
+    add_new_url(spreadsheet_id=extract_spreadsheet_id(spread_sheet_url),
+                sheet_name="SunSpotCalender",
+                youtube_url=video_url,
+                date=date,
+                credential_file=r"secrets\sunspotcalender-832ea382b537.json")
