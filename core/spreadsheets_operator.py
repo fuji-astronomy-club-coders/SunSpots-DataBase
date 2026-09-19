@@ -143,7 +143,7 @@ def update_google_sheet(
         セル位置 (例: A1)
     value : Any
         書き込む値
-    credential_file : str
+    credential_file : str | Path
         Service AccountのJSONファイル
     """
 
@@ -165,6 +165,102 @@ def update_google_sheet(
     worksheet.update(range_name=cell, values=[[value]])
 
     print(f"{sheet_name}!{cell} に '{value}' を更新しました")
+
+def dataframe_hash(df: pd.DataFrame) -> str:
+    """
+    DataFrameから安定したSHA256ハッシュを生成
+    """
+    df = df.fillna("").astype(str)
+
+    # 行・列順の影響を避けたい場合はソート
+    df = df.sort_index(axis=0).sort_index(axis=1)
+
+    text = df.to_csv(index=False, lineterminator="\n")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def load_public_sheet_csv(pub_url: str) -> pd.DataFrame:
+    """
+    Google Sheetsの公開URLからCSV取得
+    pubhtml URL → output=csv に変換
+    """
+    csv_url = pub_url.replace("/pubhtml", "/pub?output=csv")
+
+    response = requests.get(csv_url)
+    response.raise_for_status()
+
+    from io import StringIO
+    return pd.read_csv(StringIO(response.text))
+
+
+def load_sheet_via_api(
+    spreadsheet_id: str,
+    range_name: str,
+    service_account_file: str,
+) -> pd.DataFrame:
+    """
+    Google Sheets APIでシート取得
+    """
+
+    scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
+    creds = Credentials.from_service_account_file(
+        service_account_file,
+        scopes=scopes,
+    )
+
+    service = build("sheets", "v4", credentials=creds)
+
+    result = (
+        service.spreadsheets()
+        .values()
+        .get(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+        )
+        .execute()
+    )
+
+    values = result.get("values", [])
+
+    if not values:
+        return pd.DataFrame()
+
+    headers = values[0]
+    rows = values[1:]
+
+    return pd.DataFrame(rows, columns=headers)
+
+
+def compare_sheets(
+    public_url: str,
+    spreadsheet_id: str,
+    range_name: str,
+    service_account_file: str,
+)->dict:
+    """
+    公開シートとAPI取得シートを比較
+    """
+
+    public_df = load_public_sheet_csv(public_url)
+
+    api_df = load_sheet_via_api(
+        spreadsheet_id,
+        range_name,
+        service_account_file,
+    )
+
+    public_hash = dataframe_hash(public_df)
+    api_hash = dataframe_hash(api_df)
+
+    return {
+        "match": public_hash == api_hash,
+        "public_hash": public_hash,
+        "api_hash": api_hash,
+        "public_rows": len(public_df),
+        "api_rows": len(api_df),
+    }
+
 if __name__=="__main__":
     spread_sheet_url="https://docs.google.com/spreadsheets/d/1DtDIK2QJGgKmUqMdGREqSv-7EJXrx16vWWCDzyyPhJs/edit?gid=0#gid=0"
     update_google_sheet(spreadsheet_id=extract_spreadsheet_id(spread_sheet_url),
