@@ -29,8 +29,8 @@ def extract_spreadsheet_id(url: str) -> str:
     ValueError
         URLにSpreadsheet IDが見つからない場合
     """
-    url = url.replace("\\","/").replace("//","/")
-    
+    url = url.replace("\\", "/").replace("//", "/")
+
     pattern = r"/spreadsheets/d/([a-zA-Z0-9-_]+)"
 
     match = re.search(pattern, url)
@@ -41,11 +41,7 @@ def extract_spreadsheet_id(url: str) -> str:
 
 
 def add_new_url(
-    spreadsheet_id: str,
-    sheet_name: str,
-    date: str,
-    youtube_url: str,
-    credential_file:str |Path
+    spreadsheet_id: str, sheet_name: str, date: str, youtube_url: str, credential_file: str | Path
 ) -> bool:
     """
     Google Sheetsに予定を追加する
@@ -72,9 +68,7 @@ def add_new_url(
 
     credential_file = Path(credential_file)
 
-    gc = gspread.service_account(
-        filename=str(credential_file)
-    )
+    gc = gspread.service_account(filename=str(credential_file))
     sheet = gc.open_by_key(spreadsheet_id).worksheet(sheet_name)
 
     # 全データ取得
@@ -85,36 +79,18 @@ def add_new_url(
 
     if date in existing_dates:
         print(f"警告: {date} は既に登録されています")
-        raise ValueError ("Date already registered")
+        raise ValueError("Date already registered")
 
     # 新規追加
-    records.append({
-        "日付": date,
-        "YouTubeURL": youtube_url
-    })
+    records.append({"日付": date, "YouTubeURL": youtube_url})
 
     # 日付順ソート
-    records.sort(
-        key=lambda x: datetime.strptime(
-            str(x["日付"]),
-            "%Y-%m-%d"
-        )
-    )
+    records.sort(key=lambda x: datetime.strptime(str(x["日付"]), "%Y-%m-%d"))
 
     # シート全体を書き戻し
-    values: list[list[str]] = [
-    ["日付", "YouTubeURL"]
-    ]
+    values: list[list[str]] = [["日付", "YouTubeURL"]]
 
-    values.extend(
-        [
-            [
-                str(row["日付"]),
-                str(row["YouTubeURL"])
-            ]
-            for row in records
-        ]
-    )
+    values.extend([[str(row["日付"]), str(row["YouTubeURL"])] for row in records])
 
     sheet.clear()
     sheet.update(values)
@@ -122,12 +98,9 @@ def add_new_url(
     print(f"{date} を追加しました")
     return True
 
+
 def update_google_sheet(
-    spreadsheet_id: str,
-    sheet_name: str,
-    cell: str,
-    value: str,
-    credential_file: str | Path
+    spreadsheet_id: str, sheet_name: str, cell: str, value: str, credential_file: str | Path
 ) -> None:
     """
     Google Spreadsheetの指定セルを更新する
@@ -146,15 +119,9 @@ def update_google_sheet(
         Service AccountのJSONファイル
     """
 
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
+    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
-    creds = Credentials.from_service_account_file(
-        credential_file,
-        scopes=scopes
-    )
+    creds = Credentials.from_service_account_file(credential_file, scopes=scopes)
 
     gc = gspread.authorize(creds)
 
@@ -164,6 +131,7 @@ def update_google_sheet(
     worksheet.update(range_name=cell, values=[[value]])
 
     print(f"{sheet_name}!{cell} に '{value}' を更新しました")
+
 
 def dataframe_hash(df: pd.DataFrame) -> str:
     """
@@ -189,6 +157,7 @@ def load_public_sheet_csv(pub_url: str) -> pd.DataFrame:
     response.raise_for_status()
 
     from io import StringIO
+
     return pd.read_csv(StringIO(response.text))
 
 
@@ -236,7 +205,7 @@ def compare_sheets(
     spreadsheet_id: str,
     range_name: str,
     service_account_file: str,
-)->dict:
+) -> dict:
     """
     公開シートとAPI取得シートを比較
     """
@@ -260,12 +229,17 @@ def compare_sheets(
         "api_rows": len(api_df),
     }
 
-if __name__=="__main__":
-    spread_sheet_url="https://docs.google.com/spreadsheets/d/1DtDIK2QJGgKmUqMdGREqSv-7EJXrx16vWWCDzyyPhJs/edit?gid=0#gid=0"
-    video_url="https://youtube.com/shorts/_STlcRIGm6s?feature=share"
-    date="2026-09-19"
-    add_new_url(spreadsheet_id=extract_spreadsheet_id(spread_sheet_url),
-                sheet_name="SunSpotCalender",
-                youtube_url=video_url,
-                date=date,
-                credential_file=r"secrets\sunspotcalender-832ea382b537.json")
+
+if __name__ == "__main__":
+    spread_sheet_url = (
+        "https://docs.google.com/spreadsheets/d/1DtDIK2QJGgKmUqMdGREqSv-7EJXrx16vWWCDzyyPhJs/edit?gid=0#gid=0"
+    )
+    video_url = "https://youtube.com/shorts/_STlcRIGm6s?feature=share"
+    date = "2026-09-19"
+    add_new_url(
+        spreadsheet_id=extract_spreadsheet_id(spread_sheet_url),
+        sheet_name="SunSpotCalender",
+        youtube_url=video_url,
+        date=date,
+        credential_file=r"secrets\sunspotcalender-832ea382b537.json",
+    )
