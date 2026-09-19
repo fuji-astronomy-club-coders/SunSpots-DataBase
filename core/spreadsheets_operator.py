@@ -85,7 +85,7 @@ def add_new_url(
 
     if date in existing_dates:
         print(f"警告: {date} は既に登録されています")
-        return False
+        raise ValueError ("Date already registered")
 
     # 新規追加
     records.append({
