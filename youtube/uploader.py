@@ -1,15 +1,16 @@
 import os
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google_auth_oauthlib.flow import InstalledAppFlow
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload
 
 # YouTubeアップロード用のスコープ
 SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
 
-def upload_video_to_youtube(file_path: str, title: str, description: str, client_secrets_file: str = 'client_secret.json') -> dict:
+def upload_video_to_youtube(file_path: str, title: str, description: str, client_secrets_file: str = 'client_secret.json',token_file:str='token.json') -> dict:
     """
     動画をYouTubeに限定公開でアップロードする関数
     
@@ -24,8 +25,8 @@ def upload_video_to_youtube(file_path: str, title: str, description: str, client
 
     creds = None
     # 既存のトークンがあれば読み込む（次回以降の認証を省略するため）
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if os.path.exists('token_file'):
+        creds = Credentials.from_authorized_user_file('token_file', SCOPES)
         
     # 有効な認証情報がない場合はログイン処理を実行
     if not creds or not creds.valid:
@@ -37,7 +38,7 @@ def upload_video_to_youtube(file_path: str, title: str, description: str, client
             flow = InstalledAppFlow.from_client_secrets_file(client_secrets_file, SCOPES)
             creds = flow.run_local_server(port=0)
         # 認証情報を保存
-        with open('token.json', 'w') as token:
+        with open('token_file', 'w') as token:
             token.write(creds.to_json())
 
     try:
@@ -78,14 +79,16 @@ def upload_video_to_youtube(file_path: str, title: str, description: str, client
         return {"success": False, "url": None, "error": f"APIエラーが発生しました: {e.reason}"}
     except Exception as e:
         # その他の予期せぬエラー
-        return {"success": False, "url": None, "error": f"予期せぬエラー: {str(e)}"}
+        return {"success": False, "url": None, "error": f"予期せぬエラー: {e!s}"}
 
 # 実行例
 if __name__ == '__main__':
     result = upload_video_to_youtube(
         file_path="sample.mp4",
         title="テスト動画のタイトル",
-        description="これはAPI経由でアップロードされたテスト動画の概要欄です。\n改行も可能です。"
+        description="これはAPI経由でアップロードされたテスト動画の概要欄です。\n改行も可能です。",
+        client_secrets_file=r"secrets\youtube_client_secret.json",
+        token_file=r"secrets\youtube_token.json"
     )
     
     if result["success"]:
