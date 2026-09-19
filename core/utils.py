@@ -1,19 +1,39 @@
-import pathlib
-from tkinter.filedialog import askdirectory, askopenfilename
+import json
+import logging
+from pathlib import Path
 
 import cv2
 import numpy as np
-from cv2 import VideoWriter_fourcc  # pyright: ignore[reportAttributeAccessIssue]
+
+logger = logging.getLogger(__name__)
+
+def load_json(file_path:Path) -> None:
+    """
+    JSONファイルを読み込んでPythonオブジェクトとして返す
+    """
+    try:
+        with file_path.open(mode="r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.exception(f"file not found: {file_path}")
+    except json.JSONDecodeError as e:
+        logger.exception(f"JSON parsing error: {e}")
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
+    else:
+        logger.info(f"Loaded the JSON file: {file_path}")
+
+    return None
 
 
 def upscale_video(
-    input_path,
-    output_path,
-    target_width=2560,
-    target_height=1440,
-    method="nearest",
-    pad_color=(0, 0, 0),  # 余白の色 (B, G, R) デフォルトは黒
-):
+    input_path: str | Path,
+    output_path: str | Path,
+    target_width: int = 2560,
+    target_height: int = 1440,
+    method: str = "nearest",
+    pad_color: tuple[int, int, int] = (0, 0, 0),  # 余白の色 (B, G, R) デフォルトは黒
+) -> None:
     """
     元の縦横比を維持したまま動画の解像度をアップスケールする関数
 
@@ -51,13 +71,11 @@ def upscale_video(
     interpolation_flag = cv2.INTER_NEAREST if method == "nearest" else cv2.INTER_CUBIC
 
     # 動画書き出し設定 (2Kキャンバスサイズで出力)
-    fourcc = VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v") # pyright: ignore[reportAttributeAccessIssue]
     out = cv2.VideoWriter(output_path, fourcc, fps, (target_width, target_height))
 
     print(f"元サイズ: {orig_w}x{orig_h} -> 拡大サイズ: {new_w}x{new_h}")
-    print(
-        f"キャンバスサイズ: {target_width}x{target_height} (余白配置 X:{pad_x}px, Y:{pad_y}px)"
-    )
+    print(f"キャンバスサイズ: {target_width}x{target_height} (余白配置 X:{pad_x}px, Y:{pad_y}px)")
     print("変換を開始します...")
 
     current_frame = 0
@@ -67,9 +85,7 @@ def upscale_video(
             break
 
         # アスペクト比を維持して拡大
-        resized_frame = cv2.resize(
-            frame, (new_w, new_h), interpolation=interpolation_flag
-        )
+        resized_frame = cv2.resize(frame, (new_w, new_h), interpolation=interpolation_flag)
 
         # 指定サイズ（2560x1440）のキャンバス（背景）を作成
         canvas = np.full((target_height, target_width, 3), pad_color, dtype=np.uint8)
@@ -88,16 +104,3 @@ def upscale_video(
     out.release()
     print(f"\n変換が完了しました！ {output_path} に保存されました。")
 
-
-if __name__ == "__main__":
-    # 入力ファイル名と出力ファイル名を指定してください
-    input_file = askopenfilename(title="入力動画を選択")
-    output_directory = askdirectory(title="出力動画の保存先を選択")
-    output_file = (
-        pathlib.Path(output_directory) / f"{pathlib.Path(input_file).stem}_upscaled.mp4"
-    )
-
-    # ピクセルを等分してくっきり拡大したい場合 (method='nearest')
-    upscale_video(
-        input_file, output_file, target_width=7680, target_height=4320, method="nearest"
-    )
