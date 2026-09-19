@@ -1,8 +1,14 @@
+import hashlib
 import re
+from datetime import datetime
 from pathlib import Path
 
 import gspread
+import pandas as pd
+import requests
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+
 
 
 def extract_spreadsheet_id(url: str) -> str:
@@ -33,6 +39,89 @@ def extract_spreadsheet_id(url: str) -> str:
         raise ValueError("Spreadsheet ID が見つかりません")
 
     return match.group(1)
+
+
+def add_new_url(
+    spreadsheet_id: str,
+    worksheet_name: str,
+    date: str,
+    youtube_url: str,
+    credential_file:str |Path
+) -> bool:
+    """
+    Google Sheetsに予定を追加する
+
+    Parameters
+    ----------
+    spreadsheet_id : str
+        スプレッドシートID
+    worksheet_name : str
+        シート名
+    date : str
+        yyyy-mm-dd形式の日付
+    youtube_url : str
+        YouTube URL
+    credential_file : str | Patth
+        Service AccountのJSONファイル
+
+    Returns
+    -------
+    bool
+        追加成功ならTrue
+        日付重複ならFalse
+    """
+
+    credential_file = Path(credential_file)
+
+    gc = gspread.service_account(
+        filename=str(credential_file)
+    )
+    sheet = gc.open_by_key(spreadsheet_id).worksheet(worksheet_name)
+
+    # 全データ取得
+    records = sheet.get_all_records()
+
+    # 日付重複チェック
+    existing_dates = [str(row["日付"]) for row in records]
+
+    if date in existing_dates:
+        print(f"警告: {date} は既に登録されています")
+        return False
+
+    # 新規追加
+    records.append({
+        "日付": date,
+        "YouTubeURL": youtube_url
+    })
+
+    # 日付順ソート
+    records.sort(
+        key=lambda x: datetime.strptime(
+            str(x["日付"]),
+            "%Y-%m-%d"
+        )
+    )
+
+    # シート全体を書き戻し
+    values: list[list[str]] = [
+    ["日付", "YouTubeURL"]
+    ]
+
+    values.extend(
+        [
+            [
+                str(row["日付"]),
+                str(row["YouTubeURL"])
+            ]
+            for row in records
+        ]
+    )
+
+    sheet.clear()
+    sheet.update(values)
+
+    print(f"{date} を追加しました")
+    return True
 
 def update_google_sheet(
     spreadsheet_id: str,
