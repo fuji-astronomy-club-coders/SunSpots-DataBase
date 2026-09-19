@@ -159,7 +159,6 @@
             font-size: 0.7rem;
             color: #666;
             text-align: center;
-            margin-auto: auto;
             margin-top: 20px;
         }
 
@@ -168,6 +167,56 @@
             padding: 40px;
             font-size: 1rem;
             color: var(--accent-color);
+        }
+
+        /* --- スマホ表示最適化（画面幅600px以下） --- */
+        @media (max-width: 600px) {
+            body {
+                padding: 4px 2px;
+            }
+
+            .calendar-header {
+                margin-bottom: 8px;
+            }
+
+            .calendar-title {
+                font-size: 1.0rem;
+            }
+
+            .nav-btn {
+                padding: 4px 8px;
+                font-size: 0.8rem;
+            }
+
+            .calendar-grid {
+                gap: 3px;
+            }
+
+            .weekday-header {
+                padding: 4px 0;
+                font-size: 0.7rem;
+            }
+
+            .day-cell {
+                padding: 2px;
+                min-height: 52px;
+                border-radius: 4px;
+            }
+
+            .day-number {
+                font-size: 0.65rem;
+                padding: 1px 3px;
+                margin-bottom: 2px;
+            }
+
+            .sun-link::after {
+                display: none;
+            }
+
+            .no-obs {
+                font-size: 0.55rem;
+                margin-top: 6px;
+            }
         }
     </style>
 </head>
@@ -311,8 +360,6 @@
                     // もし新しいタブで開かない場合は、親画面全体を切り替える設定にする
                     link.target = '_top';
                     link.rel = 'noopener noreferrer';
-
-
 
                     const img = document.createElement('img');
                     // 高画質サムネイル (hqdefault.jpg)
