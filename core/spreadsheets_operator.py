@@ -8,9 +8,9 @@ def update_google_sheet(
     spreadsheet_id: str,
     sheet_name: str,
     cell: str,
-    value,
-    credential_file: Path
-):
+    value: str,
+    credential_file: str | Path
+) -> None:
     """
     Google Spreadsheetの指定セルを更新する
 
@@ -43,6 +43,6 @@ def update_google_sheet(
     spreadsheet = gc.open_by_key(spreadsheet_id)
     worksheet = spreadsheet.worksheet(sheet_name)
 
-    worksheet.update(cell, [[value]])
+    worksheet.update(range_name=cell, values=[[value]])
 
     print(f"{sheet_name}!{cell} に '{value}' を更新しました")
